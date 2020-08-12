@@ -216,23 +216,6 @@ def updateHosts(currenthosts):
             database_file.close()
 
 # ======================================================================================================================================
-def str2bool(v):
-    """
-        Method responsable to handle "argparse" booleans.
-
-        #parser.add_argument('-S', '--scan', help="Run a new scan and replace the old XML", type=str2bool, required=False, default=False, nargs="?", const=True) # "default" when there is no "--scan" as argument | nargs to use "const" | "const" when "--scan" is used with no value |
-    """
-
-    if isinstance(v, bool):
-       return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-# ======================================================================================================================================
 def main():
     parser = argparse.ArgumentParser(description="This program helps you to manager your network using NMAP",)
     parser.add_argument('-S', '--scan', help="Run a new scan and replace the old XML. Accept any string used on NMAP, such 192.168.0.0/24 or 192.168.0.*", type=str, required=False, default="")

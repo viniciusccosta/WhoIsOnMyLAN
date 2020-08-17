@@ -30,7 +30,7 @@ def quickScanToXml(target, file_path, filename=datetime.now().strftime("%Y_%m_%d
     """
 
     print(f"{color.BOLD}To perform a scan, it will be necessary to use the 'sudo' command. Please, enter your password...{color.ENDC}")
-    child = pexpect.spawn(f'sudo nmap -sn -oX {file_path}/{filename}.xml {target}')
+    child = pexpect.spawn(f'sudo nmap -sn -oX {file_path}/{filename}.xml {target}')                                                         # Change timeout
     child.expect('password')
 
     pswd = getpass.getpass()
@@ -42,7 +42,7 @@ def quickScanToXml(target, file_path, filename=datetime.now().strftime("%Y_%m_%d
     return result
 
 # ==============================================================================
-def getHostsFromLastestScanXml(scan_path):
+def getHostsFromLastestXml(scan_path):
     # ----------------------------------------------------------
     # Try to open last XML:
     scans = glob.glob(f'{scan_path}/*.xml')

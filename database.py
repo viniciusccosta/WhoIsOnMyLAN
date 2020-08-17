@@ -23,6 +23,13 @@ def createDatabase(db_path):
     )
     db.close()
 
+def getConn():
+    conn = sqlite3.connect(database_path)
+    conn.enable_load_extension(True)
+    conn.load_extension("./inet.so")
+
+    return conn
+
 # ==============================================================================================
 # TABLE HOST:
 from host import Host
@@ -36,9 +43,9 @@ def getAllHosts():
 
     hosts = []
 
-    db = sqlite3.connect(database_path)
-    sql = "SELECT mac, ipv4, timestamp, name, known FROM HOST;"
-    cur = db.cursor()
+    conn = getConn()
+    sql = "SELECT mac, ipv4, timestamp, name, known FROM HOST ORDER BY INET_ATON(ipv4);"
+    cur = conn.cursor()
     cur.execute(sql)
 
     for r in cur.fetchall():
@@ -53,34 +60,47 @@ def getAllHosts():
             )
         )
 
-    db.close()
+    conn.close()
 
     return hosts
 
 def getLastestHosts():
     hosts = []
 
-    db = sqlite3.connect(database_path)
-    sql = "SELECT (mac, ipv4, timestamp, name, known) FROM HOST;"   # TODO: SELECT ROW WITH THE LATEST TIMESTAMP
-    cur = db.cursor()
+    conn = getConn()
+    sql = """
+            SELECT
+                a.mac,
+                a.ipv4,
+                a.timestamp,
+                a.name,
+                a.known
+                
+                FROM 
+                    HOST a
+                INNER JOIN ( SELECT MAX(host.timestamp) ts FROM HOST ORDER BY host.timestamp DESC LIMIT 1 ) b
+                    ON a.timestamp = b.ts
+                
+                ORDER BY 
+                    INET_ATON(a.ipv4) ASC;
+    """
+    cur = conn.cursor()
     cur.execute(sql)
 
-    while True:
-        records = cur.fetchall()
+    records = cur.fetchall()
 
-        for r in records:
-
-            hosts.append(
-                Host(
-                    mac       = r[0],
-                    ipv4      = r[1],
-                    timestamp = r[2],
-                    name      = r[3],
-                    known     = r[4],
-                )
+    for r in records:
+        hosts.append(
+            Host(
+                mac       = r[0],
+                ipv4      = r[1],
+                timestamp = r[2],
+                name      = r[3],
+                known     = r[4],
             )
+        )
 
-    db.close()
+    conn.close()
 
     return hosts
 
@@ -100,7 +120,7 @@ def insertOrUpdateHosts(hosts):
     # INSERT new host or UPDATE ipv4 if already exists.
     sql = """
         INSERT INTO HOST (mac, ipv4, timestamp, name, known) VALUES (?,?,?,?,?)
-            ON CONFLICT (mac) DO UPDATE SET ipv4=(?);
+            ON CONFLICT (mac) DO UPDATE SET ipv4=(?), timestamp=(?);
     """
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -109,9 +129,24 @@ def insertOrUpdateHosts(hosts):
     for host in hosts:
         db.execute(
             sql,
-            (host.mac, host.ipv4, timestamp, host.name, host.known, host.ipv4),
+            (host.mac, host.ipv4, timestamp, host.name, host.known, host.ipv4, timestamp),
         )
     db.commit()
     db.close()
+
+def getHosts(hosts):
+    conn = getConn()
+
+    for i,host in enumerate(hosts):
+        sql = "SELECT mac, ipv4, timestamp, name, known FROM HOST WHERE mac=(?);"
+        cur = conn.cursor()
+        cur.execute(sql,(host.mac,))
+
+        db_res = cur.fetchone()
+        host.name  = db_res[3]
+        host.known = db_res[4]
+
+    conn.close()
+    return hosts
 
 # ==============================================================================================

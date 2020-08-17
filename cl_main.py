@@ -1,12 +1,10 @@
 # ======================================================================================================================================
 import argparse
+from pathlib import Path
 
-from pathlib    import Path
-
-from database   import *
-from nmap       import *
-from host       import Host
 from bashcolors import bcolors as bc
+from database import *
+from nmap import *
 
 # ======================================================================================================================================
 # GLOBAL
@@ -19,11 +17,13 @@ SCAN_PATH   = "./scans"
 # ======================================================================================================================================
 # NMAP:
 def runScan(target):
-    quickScanToXml(target, SCAN_PATH)
-    hosts = getHostsFromLastestScanXml(SCAN_PATH)
-    insertOrUpdateHosts(hosts)
-    # TODO: Retrieve lastest inserted/updated rows
-    printHostTable(hosts)   # TODO: "Retrieve lastest inserted/updated rows" first
+    quickScanToXml(target, SCAN_PATH)               # 1) Use NMAP and save result on XML
+    print(f"{color.BOLD}Scanning ended successfully{color.ENDC}")
+
+    hosts = getHostsFromLastestXml(SCAN_PATH)       # 2) Read lastest NMAP's XML
+    insertOrUpdateHosts(hosts)                      # 3) Update database
+    hosts = getLastestHosts()                       # 4) Get from database the latest hosts
+    printHostTable(hosts)                           # 5) Show latest hosts
 
 # ======================================================================================================================================
 def startupCheck():
@@ -72,7 +72,8 @@ def showMenu():
             # -----------------------------------------------------
             elif option == "2":
                 try:
-                    lastest_hosts = getHostsFromLastestScanXml(SCAN_PATH)
+                    lastest_hosts = getHostsFromLastestXml(SCAN_PATH)   # Read hosts from XML
+                    lastest_hosts = getHosts(lastest_hosts)                 # Compare to database
                     printHostTable(lastest_hosts)
                 except FileNotFoundError:
                     print(f"{bc.FAIL}\nNo scan found\n{bc.ENDC}")
@@ -156,7 +157,8 @@ if __name__ == "__main__":
 
 # ======================================================================================================================================
 
-# TODO: Do a GUI version
+# TODO: GUI version
+# TODO: Add MAC Vendors's API
 
 # ======================================================================================================================================
 # REFERENCES:
@@ -166,4 +168,5 @@ if __name__ == "__main__":
 # https://stackoverflow.com/questions/11599263/making-it-pythonic-create-a-sqlite3-database-if-it-doesnt-exist#:~:text=3-,sqlite3.,connect%20using%20the%20sqlite3%20module.
 # https://stackoverflow.com/questions/10607688/how-to-create-a-file-name-with-the-current-date-time-in-python
 
+# https://api.macvendors.com/
 # ======================================================================================================================================
